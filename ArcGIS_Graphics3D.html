@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://js.arcgis.com/4.24/esri/themes/dark/main.css" />
+    <script src="https://js.arcgis.com/4.24/"></script>
+    <title>GIS Web Development</title>
+    <style>
+      html,
+      body {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+      }
+      #viewDiv{
+        width: 100%;
+        height: 100%;
+      }
+      
+
+    </style>
+    <script>
+       var view;
+
+         require([
+        "esri/Map",
+        "esri/views/SceneView",
+        "esri/layers/GraphicsLayer",
+        "esri/Graphic",
+      ], function (Map, SceneView,GraphicsLayer,Graphic) {
+        var map = new Map({
+          basemap: "dark-gray-vector",
+        });
+        
+        view = new SceneView({
+          id: "view",
+          container: "viewDiv",
+          map: map,
+          camera:{
+            position:[
+              49.8650146415326, //lon
+              40.403874112778034,//la
+              100000,//z-meters
+            ],
+           },  
+        });
+
+        var glMain = new GraphicsLayer({
+          id:'glmain',
+        });
+        view.map.add(glMain);
+       
+        var point3d = new Graphic({
+          geometry: {
+            type: "point",
+            x:  49.8650146415326,
+            y: 40.403874112778034,
+            z:0,
+          },
+          symbol: {
+            type: "point-3d", // autocasts as new PointSymbol3D()
+            symbolLayers: [
+              {
+                type: "object", // autocasts as new ObjectSymbol3DLayer()
+                width: 2000,
+                height: 2000,
+                resource: {
+                  primitive: "sphere",
+                },
+                tilt: 0,
+                heading: 180,
+                material: {
+                  color: "#FFD700",
+                },
+              },
+            ],
+          },
+        });
+
+
+        var line3d = new Graphic({
+          geometry: {
+            type: "polyline",
+            paths: [
+              [49.80712906507959, 40.40322167697754],
+              [49.882690588226495, 40.425506451327905],
+              [49.8650146415326,40.403874112778034],
+            ],
+          },
+          symbol: {
+            type: "line-3d", // autocasts as new LineSymbol3D()
+            symbolLayers: [
+              {
+                type: "path", // autocasts as new PathSymbol3DLayer()
+                width: 100, // path width in meters
+                height: 100, // path height in meters
+                material: { color: "#ff7380" },
+                cap: "square",
+                profile: "circle",
+              },
+            ],
+          },
+        });
+
+        var polygon3d = new Graphic({
+          geometry: {
+            type: "polygon", // autocasts as new Polygon()
+            rings: [
+              [49.80712906507959, 40.40322167697754],
+              [49.882690588226495, 40.425506451327905],
+              [49.8650146415326,40.403874112778034],
+              [49.80712906507959, 40.40322167697754],
+
+            ],
+          },
+          symbol: {
+            type: "polygon-3d", // autocasts as new PolygonSymbol3D()
+            symbolLayers: [
+              {
+                type: "extrude", // autocasts as new ExtrudeSymbol3DLayer()
+                size: 10000, // Height of the extrusion in meters
+                material: { color: [255, 0, 0, 0.2] },
+              },
+            ],
+          },
+        });
+
+
+        glMain.graphics.addMany([point3d,line3d,polygon3d]);
+
+        // var pointGraphic = new Graphic({
+        //   geometry: {
+        //     type: "point",
+        //     longitude: 49.83715809880399,
+        //     latitude: 40.41812352922513,
+        //     z:100000,
+        //   },
+        //   symbol: {
+        //     type: "simple-marker",
+        //     color: [226, 119, 40],
+        //   },
+        // });
+
+        // var polylineGraphic = new Graphic({
+        //   geometry: {
+        //     type: "polyline",
+        //     paths:[
+        //       [49.83715809880399, 40.41812352922513,0],
+        //       [49.83715809880399, 40.41812352922513,100000],
+        //   ]
+        //   },
+        //   symbol: { type: "simple-line", color: [226, 119, 40], width: 4 },
+        // });
+
+        // var polygonGraphic = new Graphic({
+        //   geometry: {
+        //     type: "polygon",
+        //     rings:[
+        //       [49.83715809880399, 40.41812352922513,100000],
+        //       [49.90486135006517, 40.406307977701694,100000],
+        //       [49.92949461097461, 40.397027400817734,100000],
+        //       [49.83715809880399, 40.41812352922513,100000],
+        //   ]
+        //   },
+        //   symbol: {
+        //     type: "simple-fill",
+        //     color: [51, 51, 204],
+        //     style: "solid",
+        //     outline: {
+        //       color: "white",
+        //       width: 1,
+        //     },
+        //   },
+        // });
+
+
+
+        //     glMain.graphics.addMany([pointGraphic,polylineGraphic,polygonGraphic]);
+
+        view.on('click',function(event){
+             console.log(event);
+            })
+      });
+    </script>
+</head>
+<body>
+    <div id="viewDiv"></div>
+</html>

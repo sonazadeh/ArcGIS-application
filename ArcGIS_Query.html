@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta
+      name="viewport"
+      content="initial-scale=1, maximum-scale=1,user-scalable=no"
+    />
+    <title>ArcGIS Mastery GIS Application</title>
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.25/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.25/"></script>
+
+    <style>
+      html,
+      body,
+      #mapViewContainer {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      .splitLeft {
+        height: 100%;
+        width: 20%;
+        position: fixed;
+        z-index: 1;
+        top: 0;
+        overflow-x: hidden;
+        padding-top: 0px;
+        left: 0;
+        background-color: white;
+      }
+
+      .splitRight {
+        height: 100%;
+        width: 80%;
+        position: fixed;
+        z-index: 1;
+        top: 0;
+        overflow-x: hidden;
+        padding-top: 0px;
+        right: 0;
+        background-color: white;
+      }
+
+      .collapsible {
+        background-color: #777;
+        color: white;
+        cursor: pointer;
+        padding: 10px;
+        width: 100%;
+        border: none;
+        text-align: left;
+        outline: none;
+        font-size: 15px;
+      }
+
+      .active,
+      .collapsible:hover {
+        background-color: #555;
+      }
+
+      .content {
+        padding: 0 18px;
+        display: none;
+        overflow: hidden;
+        background-color: #f1f1f1;
+      }
+
+      .contentOpen {
+        padding: 0 18px;
+        display: block;
+        overflow: hidden;
+        background-color: #f1f1f1;
+      }
+    </style>
+
+    <script>
+      require([
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/WebMap",
+        "esri/layers/FeatureLayer",
+      ], function (Map, MapView, WebMap, FeatureLayer) {
+        var map;
+        var mapView;
+        var pointFeatureLayer;
+        var lineFeatureLayer;
+        var polygonFeatureLayer;
+
+        InitializeApplication();
+        AddingFeatureLayers();
+
+        function InitializeApplication() {
+          //Map option 1
+          map = new Map({
+            basemap: "streets-vector",
+          });
+
+          //Map option 2
+          //   const webmap = new WebMap({
+          //     portalItem: {
+          //       // autocasts as new PortalItem()
+          //       id: "459a495fc16d4d4caa35e92e895694c8",
+          //     },
+          //   });
+
+          mapView = new MapView({
+            container: "mapViewContainer",
+            map: map,
+            extent: {
+              // autocasts as new Extent()
+              xmin: 49.4731761641993,
+              ymin: 40.21751913057543,
+              xmax: 50.15501518882458,
+              ymax: 40.583549494725695,
+              spatialReference: 4326,
+            },
+          });
+        }
+
+        function AddingFeatureLayers() {
+          pointFeatureLayer = new FeatureLayer({
+            url: "https://services.arcgis.com/V6ZHFr6zdgNZuVG0/ArcGIS/rest/services/Hazards_Uptown_Charlotte/FeatureServer/0",
+          });
+
+          lineFeatureLayer = new FeatureLayer({
+            url: "https://services.arcgis.com/V6ZHFr6zdgNZuVG0/arcgis/rest/services/Road_Closure/FeatureServer/0",
+          });
+
+          polygonFeatureLayer = new FeatureLayer({
+            url: "https://services.arcgis.com/V6ZHFr6zdgNZuVG0/ArcGIS/rest/services/Hazard_Areas/FeatureServer/0",
+          });
+          map.addMany([
+            pointFeatureLayer,
+            lineFeatureLayer,
+            polygonFeatureLayer,
+          ]);
+        }
+      });
+    </script>
+  </head>
+
+  <body>
+    <div>
+      <div class="splitLeft">
+        <div class="centered">
+          <button type="button" class="collapsible">Panel1</button>
+          <div class="contentOpen"></div>
+          <button type="button" class="collapsible">Panel2</button>
+          <div class="content" style="height: 75px"></div>
+          <button type="button" class="collapsible">Panel3</button>
+          <div class="content" style="height: auto"></div>
+        </div>
+      </div>
+
+      <div class="splitRight">
+        <div id="mapViewContainer"></div>
+      </div>
+    </div>
+  </body>
+</html>

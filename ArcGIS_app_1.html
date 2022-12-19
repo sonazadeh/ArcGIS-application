@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta
+      name="viewport"
+      content="initial-scale=1, maximum-scale=1,user-scalable=no"
+    />
+    <title>ArcGIS Application</title>
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.25/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.25/"></script>
+
+    <style>
+      html,
+      body,
+      #mapViewContainer {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      .splitLeft {
+        height: 100%;
+        width: 25%;
+        position: fixed;
+        z-index: 1;
+        top: 0;
+        overflow-x: hidden;
+        padding-top: 0px;
+        left: 0;
+        background-color: white;
+      }
+
+      .splitRight {
+        height: 100%;
+        width: 75%;
+        position: fixed;
+        z-index: 1;
+        top: 0;
+        overflow-x: hidden;
+        padding-top: 0px;
+        right: 0;
+        background-color: white;
+      }
+
+      .collapsible {
+        background-color: #777;
+        color: white;
+        cursor: pointer;
+        padding: 10px;
+        width: 100%;
+        border: none;
+        text-align: left;
+        outline: none;
+        font-size: 15px;
+      }
+
+      .active,
+      .collapsible:hover {
+        background-color: #555;
+      }
+
+      .content {
+        padding: 0 18px;
+        display: none;
+        overflow: hidden;
+        background-color: #f1f1f1;
+      }
+
+      .contentOpen {
+        padding: 0 18px;
+        display: block;
+        overflow: hidden;
+        background-color: #f1f1f1;
+      }
+    </style>
+
+    <script>
+      require([
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/WebMap",
+        "esri/layers/FeatureLayer",
+        "esri/widgets/Sketch",
+        "esri/layers/GraphicsLayer",
+        "esri/widgets/Editor",
+        "esri/rest/support/Query",
+        "esri/geometry",
+        "esri/symbols/SimpleFillSymbol",
+        "esri/Graphic",
+        "esri/geometry/geometryEngine",
+      ], function (
+        Map,
+        MapView,
+        WebMap,
+        FeatureLayer,
+        Sketch,
+        GraphicsLayer,
+        Editor,
+        Query,
+        geometry,
+        SimpleFillSymbol,
+        Graphic,
+        geometryEngine
+      ) {
+        var map;
+        var mapView;
+        var pointFeatureLayer;
+        var lineFeatureLayer;
+        var polygonFeatureLayer;
+        var graphicsLayer;
+
+        document.getElementById("btnClearQueryResults").onclick =
+          resetQueryResults;
+
+        InitializeApplication();
+        AddingFeatureLayers();
+
+        function InitializeApplication() {
+          //Map option 1
+          map = new Map({
+            basemap: "streets-vector",
+          });
+
+          //Map option 2
+          //   const webmap = new WebMap({
+          //     portalItem: {
+          //       // autocasts as new PortalItem()
+          //       id: "459a495fc16d4d4caa35e92e895694c8",
+          //     },
+          //   });
+
+          mapView = new MapView({
+            container: "mapViewContainer",
+            map: map,
+            extent: {
+              // autocasts as new Extent()
+              xmin: 49.4731761641993,
+              ymin: 40.21751913057543,
+              xmax: 50.15501518882458,
+              ymax: 40.583549494725695,
+              spatialReference: 4326,
+            },
+          });
+
+          mapView.when(() => {
+            const sketch = new Sketch({
+              layer: graphicsLayer,
+              view: mapView,
+              // graphic will be selected as soon as it is created
+              creationMode: "single",
+              container: sketchContianer,
+            });
+
+            sketch.on("create", (evt) => {
+              if (evt.state === "complete") {
+                // CUT POLYLINE INPUT //
+                const polylineGeometry = evt.graphic.geometry.clone();
+                if (polylineGeometry.type === "polyline") {
+                  // FIND FIRST EXISTING POLYGON GRAPHIC //
+                  const polygonGraphic = graphicsLayer.graphics.find(
+                    (g) => g.geometry.type === "polygon"
+                  );
+                  if (polygonGraphic) {
+                    // CUT POLYGON INPUT //
+                    const polygonGeometry = polygonGraphic.geometry.clone();
+                    // CUT //
+                    const cutResults = geometryEngine.cut(
+                      polygonGeometry,
+                      polylineGeometry
+                    );
+                    // DO WE HAVE A VALID CUT //
+                    if (cutResults.length) {
+                      // REMOVE SOURCE POLYGON //
+                      graphicsLayer.remove(polygonGraphic);
+                      // ADD CUT RESULTS POLYGONS //
+                      graphicsLayer.addMany(
+                        cutResults.map((cutResult) => {
+                          return {
+                            geometry: cutResult,
+                            symbol: sketch.viewModel.polygonSymbol,
+                          };
+                        })
+                      );
+                    }
+                  }
+                }
+              }
+            });
+
+            const pointInfos = {
+              layer: pointFeatureLayer,
+              formTemplate: {
+                // autocasts to FormTemplate
+                elements: [
+                  {
+                    // autocasts to Field Elements
+                    type: "field",
+                    fieldName: "HazardType",
+                    label: "Hazard type",
+                  },
+                  {
+                    type: "field",
+                    fieldName: "Description",
+                    label: "Description",
+                  },
+                  {
+                    type: "field",
+                    fieldName: "SpecialInstructions",
+                    label: "Special Instructions",
+                  },
+                  {
+                    type: "field",
+                    fieldName: "Status",
+                    label: "Status",
+                  },
+                  {
+                    type: "field",
+                    fieldName: "Priority",
+                    label: "Priority",
+                  },
+                ],
+              },
+            };
+
+            const lineInfos = {
+              layer: lineFeatureLayer,
+              formTemplate: {
+                // autocasts to FormTemplate
+                elements: [
+                  {
+                    // autocasts to FieldElement
+                    type: "field",
+                    fieldName: "Severity",
+                    label: "Severity",
+                  },
+                  {
+                    type: "field",
+                    fieldName: "blocktype",
+                    label: "Type of blockage",
+                  },
+                  {
+                    type: "field",
+                    fieldName: "fullclose",
+                    label: "Full closure",
+                  },
+                  {
+                    type: "field",
+                    fieldName: "active",
+                    label: "Active",
+                  },
+                  {
+                    type: "field",
+                    fieldName: "locdesc",
+                    label: "Location Description",
+                  },
+                ],
+              },
+            };
+
+            const polyInfos = {
+              layer: polygonFeatureLayer,
+              formTemplate: {
+                // autocasts to FormTemplate
+                elements: [
+                  {
+                    // autocasts to FieldElement
+                    type: "field",
+                    fieldName: "incidenttype",
+                    label: "Incident Type",
+                  },
+                  {
+                    type: "field",
+                    fieldName: "activeincid",
+                    label: "Active",
+                  },
+                  {
+                    type: "field",
+                    fieldName: "descrip",
+                    label: "Description",
+                  },
+                ],
+              },
+            };
+
+            const editor = new Editor({
+              view: mapView,
+              layerInfos: [pointInfos, lineInfos, polyInfos],
+            });
+
+            // Add the widget to the view
+            mapView.ui.add(editor, "top-right");
+          });
+        }
+
+        function AddingFeatureLayers() {
+          pointFeatureLayer = new FeatureLayer({
+            url: "https://services.arcgis.com/V6ZHFr6zdgNZuVG0/ArcGIS/rest/services/Hazards_Uptown_Charlotte/FeatureServer/0",
+          });
+
+          lineFeatureLayer = new FeatureLayer({
+            url: "https://services.arcgis.com/V6ZHFr6zdgNZuVG0/arcgis/rest/services/Road_Closure/FeatureServer/0",
+          });
+
+          polygonFeatureLayer = new FeatureLayer({
+            url: "https://services.arcgis.com/V6ZHFr6zdgNZuVG0/ArcGIS/rest/services/Hazard_Areas/FeatureServer/0",
+          });
+
+          graphicsLayer = new GraphicsLayer();
+
+          map.addMany([
+            pointFeatureLayer,
+            lineFeatureLayer,
+            polygonFeatureLayer,
+            graphicsLayer,
+          ]);
+        }
+
+        function QueryFeatureLayer(geometry) {
+          let query = polygonFeatureLayer.createQuery();
+          query.geometry = geometry;
+          query.spatialRelationship = "intersects";
+          query.outFields = ["status ", "descrip", "OBJECTID"];
+
+          polygonFeatureLayer.queryFeatures(query).then(function (response) {
+            response.features.forEach((element) => {
+              HighlightFeatureOnMap(element);
+            });
+          });
+        }
+
+        var indexOfFeature = 0;
+
+        function HighlightFeatureOnMap(feature) {
+          //Add hilighted graphics to the map
+
+          indexOfFeature++;
+
+          var geometry = feature.geometry;
+          var fillSymbol = new SimpleFillSymbol();
+          fillSymbol.color = [0, 0, 200, 0.1];
+          fillSymbol.style = "solid";
+          fillSymbol.outline = { color: "white", width: 2 };
+
+          var graphic = new Graphic();
+          graphic.geometry = geometry;
+          graphic.symbol = fillSymbol;
+
+          graphicsLayer.add(graphic);
+
+          //Add attributes
+          document.getElementById("txtQueryRestults").value =
+            document.getElementById("txtQueryRestults").value +
+            "Feature OBject ID = " +
+            feature.attributes["OBJECTID"] +
+            ": Status is " +
+            feature.attributes["status"] +
+            " and Description is: " +
+            feature.attributes["descrip"] +
+            "\n";
+        }
+
+        function resetQueryResults() {
+          graphicsLayer.removeAll();
+          document.getElementById("txtQueryRestults").value = "";
+          indexOfFeature = 0;
+        }
+      });
+    </script>
+  </head>
+
+  <body>
+    <div>
+      <div class="splitLeft">
+        <div class="centered">
+          <button type="button" class="collapsible">Draw Graphics</button>
+          <div class="contentOpen">
+            <div id="sketchContianer"></div>
+          </div>
+          <button type="button" class="collapsible">Query Results</button>
+          <div class="contentOpen" style="height: 100%">
+            <textarea id="txtQueryRestults" rows="4" cols="50"></textarea>
+            <button id="btnClearQueryResults">Clear Results</button>
+          </div>
+          <button type="button" class="collapsible">Panel3</button>
+          <div class="content" style="height: auto"></div>
+        </div>
+      </div>
+
+      <div class="splitRight">
+        <div id="mapViewContainer"></div>
+      </div>
+    </div>
+  </body>
+</html>
